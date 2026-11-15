@@ -77,6 +77,8 @@ The downloaded photo is an illustrative input, not a benchmark evaluation.
 
 Residual layer `i` is captured after its DeepStack visual addition, at the next decoder block's input or the final norm's input. Capturing the decoder block output alone would omit that addition.
 
+With `K` DeepStack levels (`K = 3` in the released 2B/4B/8B checkpoints), the additions after blocks `i + 1 .. K - 1` are recomputed from the receiver's own pixels, so replacing residual `i < K - 1` does not restore a source run. The adapter declares these layers through `residual_bypass`; `causal.patch` and `causal.attribute` warn for them and record them in `metadata["applicability"]`. From layer `K - 1` on, residual replacement is a complete restoration.
+
 Profiles and head lenses inspect language self-attention. Rollout/relevance summarize those attention paths; they do not model the extra DeepStack injection edges. Image grids are included in clean/corrupt alignment checks.
 
 The eager adapter supplies editable pre-softmax scores and consumed attention

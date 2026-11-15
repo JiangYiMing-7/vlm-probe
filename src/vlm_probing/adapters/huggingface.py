@@ -173,8 +173,17 @@ def make_adapter(model):
         ])
     if gpt2:
         notes.append("GPT2 Q/K/V use disjoint packed-projection slices; fixed-scale head logit attribution is not exposed for its affine LayerNorm.")
+    residual_bypass = False
     if name == "Qwen3VLForConditionalGeneration":
         notes.append("Rollout/relevance summarize language self-attention; DeepStack injection is not an attention edge.")
+        # Residual i includes the DeepStack addition after block i. The additions
+        # after blocks i+1..K-1 are recomputed from the receiver's own pixels, so
+        # replacing residual i < K-1 does not restore a source run.
+        levels = min(len(model.config.vision_config.deepstack_visual_indexes), len(layers))
+        if levels > 1:
+            residual_bypass = frozenset(range(levels - 1))
+            notes.append(f"Residuals {sorted(residual_bypass)} precede later DeepStack injections; "
+                         "replacing them does not restore a source run (declared via residual_bypass).")
     mj = None
     if not gpt2 and release == ["5", "3"]:
         mj = MJSpec(
@@ -201,6 +210,7 @@ def make_adapter(model):
                         "pixel_attention_mask", "image_sizes", "token_type_ids", "mm_token_type_ids"),
         forward_defaults={"use_cache": False, "return_dict": True}, notes=tuple(notes),
         attention_supports=attention_supports, causal_attention=True, mj=mj,
+        residual_bypass=residual_bypass,
     )
     model_id = getattr(model.config, "_name_or_path", "") or name
     return TorchModelAdapter(model, sites, model_id=model_id,

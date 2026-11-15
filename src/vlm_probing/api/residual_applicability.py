@@ -15,8 +15,13 @@ def residual_applicability(spec, method, layers):
     if method not in _EDITING:
         return None
     final = max(spec.residuals)
-    incomplete = (sorted(i for i in layers if i < final)
-                  if spec.residual_bypass and method in _RESTORING else [])
+    bypass = spec.residual_bypass
+    if method not in _RESTORING or not bypass:
+        incomplete = []
+    elif bypass is True:
+        incomplete = sorted(i for i in layers if i < final)
+    else:  # declared per layer
+        incomplete = sorted(i for i in layers if i in bypass and i < final)
     boundary = spec.last_stream_kv_layer
     local = sorted(i for i in layers if i >= boundary) if boundary is not None else []
     caveats = []

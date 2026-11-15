@@ -213,7 +213,9 @@ class ModelSpec:
     last_stream_kv_layer: int | None = None
     # Later blocks consume state that bypasses the residual stream, such as
     # per-layer inputs or stored K/V, so replacing one residual is not a restoration.
-    residual_bypass: bool = False
+    # True declares this for every non-final residual; a frozenset names the
+    # residual layers it applies to (e.g. before a model's last visual injection).
+    residual_bypass: bool | frozenset[int] = False
     # A mixed mask cannot be summarized by the causal_attention boolean. None
     # retains the legacy declaration; e.g. causal text with bidirectional image
     # blocks is explicitly mixed, with causal_attention left as None.
@@ -232,7 +234,11 @@ class ModelSpec:
                 raise ValueError(f"spec.attention_pattern={self.attention_pattern!r} contradicts "
                                  f"spec.causal_attention={self.causal_attention!r}")
         if type(self.residual_bypass) is not bool:
-            raise TypeError("spec.residual_bypass must be bool")
+            if type(self.residual_bypass) is not frozenset or any(
+                    type(i) is not int for i in self.residual_bypass):
+                raise TypeError("spec.residual_bypass must be bool or a frozenset of residual layers")
+            if not self.residual_bypass <= set(self.residuals):
+                raise ValueError("spec.residual_bypass names layers that are not residuals")
         if self.last_stream_kv_layer is not None and (
                 type(self.last_stream_kv_layer) is not int or self.last_stream_kv_layer not in self.residuals):
             raise ValueError("spec.last_stream_kv_layer must be a residual layer index or None")

@@ -92,7 +92,7 @@ does not claim attention or head access. The full demonstration contract is in
 | `causal_attention` | Explicit `True` for causally masked attention, `False` for bidirectional attention, or `None` for a mixed or unspecified pattern. Propagation warnings use this declaration with `attention_pattern`, not output shape. |
 | `attention_pattern` | Optional `"causal"`, `"bidirectional"`, or `"mixed"` mask declaration. If omitted, propagation metadata derives it from `causal_attention`. A mixed declaration uses `causal_attention=None`; ordinary causal Jacobian Lens is unavailable on that binding. |
 | `last_stream_kv_layer` | Last layer whose attention reads K/V from the residual stream, or `None` when every layer does. Propagation stops there, and residual edits from that layer warn that they cannot reach other positions. |
-| `residual_bypass` | `True` when later blocks consume state outside the residual stream, so replacing one residual does not restore a paired run. Patching and attribution then warn. |
+| `residual_bypass` | `True` when later blocks consume state outside the residual stream, so replacing one residual does not restore a paired run. A `frozenset` of residual layers declares this for those layers only (Qwen3-VL: layers before its last DeepStack injection). Patching and attribution then warn for the affected layers. |
 | `attention_supports` | Optional `{layer: site}` for layers in `attentions`; each site captures a boolean `[B or 1,H or 1,Q,K]` tensor on the attention device, with `True` for structurally permitted pairs |
 | `editable_attention` | Layer indices whose probability site is consumed by `A @ V` after the hook |
 | `heads` | `{layer: site}`, projected heads `[B,T,H,D_residual]`, or raw inputs for `project_heads` |
